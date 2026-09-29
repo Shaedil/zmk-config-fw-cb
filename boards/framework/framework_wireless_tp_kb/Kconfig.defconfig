@@ -1,0 +1,20 @@
+# Copyright (c) 2026 Shaedil
+# SPDX-License-Identifier: MIT
+
+if BOARD_FRAMEWORK_WIRELESS_TP_KB_NRF54LM20A_CPUAPP_ZMK
+
+config HW_STACK_PROTECTION
+	default ARCH_HAS_STACK_PROTECTION
+
+# The USB wrapper, the PMIC's bucks and the touchpad rail are regulators
+config REGULATOR
+	default y
+
+config BOOTLOADER_MCUBOOT
+	default y
+
+# Framework's MCUboot trusts the dev key
+config MCUBOOT_SIGNATURE_KEY_FILE
+	default "$(ZEPHYR_FRAMEWORK_CB_MODULE_DIR)/boards/framework/framework_wireless_tp_kb/mcuboot-dev-ed25519.pem"
+
+endif # BOARD_FRAMEWORK_WIRELESS_TP_KB_NRF54LM20A_CPUAPP_ZMK

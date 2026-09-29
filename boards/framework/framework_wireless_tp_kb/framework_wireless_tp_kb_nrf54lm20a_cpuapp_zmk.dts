@@ -1,0 +1,104 @@
+/*
+ * Copyright (c) 2026 Shaedil
+ * SPDX-License-Identifier: MIT
+ */
+
+#include <../boards/framework/framework_wireless_tp_kb/framework_wireless_tp_kb_nrf54lm20a_cpuapp.dts>
+
+/ {
+	chosen {
+		zmk,battery = &fuel_gauge;
+		zmk,studio-rpc-uart = &cdc_acm_uart0;
+	};
+
+	fuel_gauge: fuel_gauge {
+		compatible = "shaedil,npm1300-fuel-gauge";
+		charger = <&npm1300_charger>;
+	};
+
+	zmk_usb_hid: zmk_usb_hid {
+		compatible = "zephyr,hid-device";
+		label = "ZMK HID";
+		protocol-code = "none";
+		in-report-size = <64>;
+		in-polling-period-us = <1000>;
+	};
+};
+
+// Unpowered until something drives the touchpad
+&tp_power {
+	/delete-property/ regulator-boot-on;
+	regulator-boot-off;
+};
+
+// Framework's dts sets X1 to internal 17 pF; its schematic fits 12 pF caps (C12, C26)
+&lfclk {
+	k32src = "rc";
+	k32src-accuracy-ppm = <250>;
+};
+
+// The framework-cb-uart-log snippet turns it on; left idle, its receiver stays on
+&uart00 {
+	status = "disabled";
+};
+
+// The board has no reset button
+&wdt31 {
+	status = "okay";
+};
+
+&zephyr_udc0 {
+	// Only built with ZMK Studio, whose transport enables SERIAL
+	cdc_acm_uart0: cdc_acm_uart0 {
+		compatible = "zephyr,cdc-acm-uart";
+	};
+};
+
+// Cell specs unknown: 4.2 V, under 0.5 C
+&npm1300 {
+	npm1300_charger: charger {
+		compatible = "nordic,npm1300-charger";
+		term-microvolt = <4200000>;
+		current-microamp = <450000>;
+		dischg-limit-microamp = <1000000>;
+		vbus-limit-microamp = <500000>;
+		thermistor-ohms = <10000>;
+		thermistor-beta = <3380>;
+		charging-enable;
+	};
+};
+
+// Framework's MCUboot (daisy branch) layout, until Framework settles on one
+&cpuapp_rram {
+	/delete-node/ partitions;
+
+	partitions {
+		ranges;
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		boot_partition: partition@0 {
+			compatible = "zephyr,mapped-partition";
+			label = "mcuboot";
+			reg = <0x0 DT_SIZE_K(96)>;
+		};
+
+		slot0_partition: partition@18000 {
+			compatible = "zephyr,mapped-partition";
+			label = "image-0";
+			reg = <0x18000 DT_SIZE_K(934)>;
+		};
+
+		slot1_partition: partition@102000 {
+			compatible = "zephyr,mapped-partition";
+			label = "image-1";
+			reg = <0x102000 DT_SIZE_K(934)>;
+		};
+
+		storage_partition: partition@1f4000 {
+			compatible = "zephyr,mapped-partition";
+			label = "storage";
+			reg = <0x1f4000 DT_SIZE_K(36)>;
+		};
+	};
+};

@@ -1,0 +1,138 @@
+usb: allow the device_next stack
+
+ZMK_USB only knows the legacy stack, which has no working driver for the
+nRF54L's DWC2 controller.  ZMK_USB_DEVICE_STACK_NEXT selects device_next
+instead and drops usb.c and usb_hid.c; the board supplies the zmk_usb_*
+functions (src/usb_next.c), without the HID boot protocol.
+
+Applies to petejohanson/zmk 5565f21.
+
+diff --git a/app/CMakeLists.txt b/app/CMakeLists.txt
+index d9ddd6f..98714e7 100644
+--- a/app/CMakeLists.txt
++++ b/app/CMakeLists.txt
+@@ -41,7 +41,9 @@ target_sources(app PRIVATE src/events/activity_state_changed.c)
+ target_sources(app PRIVATE src/events/position_state_changed.c)
+ target_sources(app PRIVATE src/events/sensor_event.c)
+ target_sources_ifdef(CONFIG_ZMK_WPM app PRIVATE src/events/wpm_state_changed.c)
+-target_sources_ifdef(CONFIG_USB_DEVICE_STACK app PRIVATE src/events/usb_conn_state_changed.c)
++if(CONFIG_USB_DEVICE_STACK OR CONFIG_ZMK_USB_DEVICE_STACK_NEXT)
++  target_sources(app PRIVATE src/events/usb_conn_state_changed.c)
++endif()
+ target_sources(app PRIVATE src/behaviors/behavior_reset.c)
+ target_sources_ifdef(CONFIG_ZMK_EXT_POWER app PRIVATE src/behaviors/behavior_ext_power.c)
+ target_sources_ifdef(CONFIG_ZMK_BEHAVIOR_SOFT_OFF app PRIVATE src/behaviors/behavior_soft_off.c)
+@@ -102,7 +104,9 @@ target_sources_ifdef(CONFIG_ZMK_SPLIT app PRIVATE src/events/split_peripheral_st
+ add_subdirectory_ifdef(CONFIG_ZMK_SPLIT src/split)
+ 
+ target_sources_ifdef(CONFIG_USB_DEVICE_STACK app PRIVATE src/usb.c)
+-target_sources_ifdef(CONFIG_ZMK_USB app PRIVATE src/usb_hid.c)
++if(CONFIG_ZMK_USB AND NOT CONFIG_ZMK_USB_DEVICE_STACK_NEXT)
++  target_sources(app PRIVATE src/usb_hid.c)
++endif()
+ target_sources_ifdef(CONFIG_ZMK_RGB_UNDERGLOW app PRIVATE src/rgb_underglow.c)
+ target_sources_ifdef(CONFIG_ZMK_BACKLIGHT app PRIVATE src/backlight.c)
+ target_sources_ifdef(CONFIG_ZMK_LOW_PRIORITY_WORK_QUEUE app PRIVATE src/workqueue.c)
+diff --git a/app/Kconfig b/app/Kconfig
+index e0fab2c..5b0ecc1 100644
+--- a/app/Kconfig
++++ b/app/Kconfig
+@@ -135,12 +135,24 @@ config ZMK_USB
+     bool "USB"
+     depends on (!ZMK_SPLIT || (ZMK_SPLIT && ZMK_SPLIT_ROLE_CENTRAL))
+     select USB
+-    select USB_DEVICE_STACK
+-    select USB_DEVICE_HID
++    select USB_DEVICE_STACK if !ZMK_USB_DEVICE_STACK_NEXT
++    select USB_DEVICE_HID if !ZMK_USB_DEVICE_STACK_NEXT
++
++config ZMK_USB_DEVICE_STACK_NEXT
++    bool "Use Zephyr's device_next USB stack"
++    depends on ZMK_USB
++    select USB_DEVICE_STACK_NEXT
++    select USBD_HID_SUPPORT
++    help
++      Build USB HID on Zephyr's device_next stack instead of the legacy one,
++      for controllers that only have a UDC driver, such as the DWC2 in the
++      nRF54L and nRF54H series. ZMK does not implement it: the board or a
++      module must provide zmk_usb_get_conn_state(), zmk_usb_is_hid_ready()
++      and the zmk_usb_hid_send_*() functions.
+ 
+ config ZMK_USB_BOOT
+     bool "USB Boot Protocol Support"
+-    depends on ZMK_USB
++    depends on ZMK_USB && !ZMK_USB_DEVICE_STACK_NEXT
+     select USB_HID_BOOT_PROTOCOL
+ 
+ config USB_DEVICE_INITIALIZE_AT_BOOT
+@@ -490,7 +502,7 @@ rsource "src/boot/Kconfig"
+ 
+ menu "Initialization Priorities"
+ 
+-if USB_DEVICE_STACK
++if USB_DEVICE_STACK || ZMK_USB_DEVICE_STACK_NEXT
+ 
+ config ZMK_USB_INIT_PRIORITY
+     int "USB Init Priority"
+diff --git a/app/src/activity.c b/app/src/activity.c
+index f4dc356..0835172 100644
+--- a/app/src/activity.c
++++ b/app/src/activity.c
+@@ -22,7 +22,7 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
+ 
+ #include <zmk/activity.h>
+ 
+-#if IS_ENABLED(CONFIG_USB_DEVICE_STACK)
++#if IS_ENABLED(CONFIG_USB_DEVICE_STACK) || IS_ENABLED(CONFIG_ZMK_USB_DEVICE_STACK_NEXT)
+ #include <zmk/usb.h>
+ #endif
+ 
+@@ -31,7 +31,7 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
+ #endif
+ 
+ bool is_usb_power_present(void) {
+-#if IS_ENABLED(CONFIG_USB_DEVICE_STACK)
++#if IS_ENABLED(CONFIG_USB_DEVICE_STACK) || IS_ENABLED(CONFIG_ZMK_USB_DEVICE_STACK_NEXT)
+     return zmk_usb_is_powered();
+ #else
+     return false;
+diff --git a/app/src/display/widgets/battery_status.c b/app/src/display/widgets/battery_status.c
+index 22e73fa..f0e9c30 100644
+--- a/app/src/display/widgets/battery_status.c
++++ b/app/src/display/widgets/battery_status.c
+@@ -21,7 +21,7 @@ static sys_slist_t widgets = SYS_SLIST_STATIC_INIT(&widgets);
+ 
+ struct battery_status_state {
+     uint8_t level;
+-#if IS_ENABLED(CONFIG_USB_DEVICE_STACK)
++#if IS_ENABLED(CONFIG_USB_DEVICE_STACK) || IS_ENABLED(CONFIG_ZMK_USB_DEVICE_STACK_NEXT)
+     bool usb_present;
+ #endif
+ };
+@@ -31,7 +31,7 @@ static void set_battery_symbol(lv_obj_t *label, struct battery_status_state stat
+ 
+     uint8_t level = state.level;
+ 
+-#if IS_ENABLED(CONFIG_USB_DEVICE_STACK)
++#if IS_ENABLED(CONFIG_USB_DEVICE_STACK) || IS_ENABLED(CONFIG_ZMK_USB_DEVICE_STACK_NEXT)
+     if (state.usb_present) {
+         strcpy(text, LV_SYMBOL_CHARGE " ");
+     }
+@@ -67,7 +67,7 @@ static struct battery_status_state battery_status_get_state(const zmk_event_t *e
+ 
+     return (struct battery_status_state){
+         .level = (ev != NULL) ? ev->state_of_charge : zmk_battery_state_of_charge(),
+-#if IS_ENABLED(CONFIG_USB_DEVICE_STACK)
++#if IS_ENABLED(CONFIG_USB_DEVICE_STACK) || IS_ENABLED(CONFIG_ZMK_USB_DEVICE_STACK_NEXT)
+         .usb_present = zmk_usb_is_powered(),
+ #endif /* IS_ENABLED(CONFIG_USB_DEVICE_STACK) */
+     };
+@@ -77,7 +77,7 @@ ZMK_DISPLAY_WIDGET_LISTENER(widget_battery_status, struct battery_status_state,
+                             battery_status_update_cb, battery_status_get_state)
+ 
+ ZMK_SUBSCRIPTION(widget_battery_status, zmk_battery_state_changed);
+-#if IS_ENABLED(CONFIG_USB_DEVICE_STACK)
++#if IS_ENABLED(CONFIG_USB_DEVICE_STACK) || IS_ENABLED(CONFIG_ZMK_USB_DEVICE_STACK_NEXT)
+ ZMK_SUBSCRIPTION(widget_battery_status, zmk_usb_conn_state_changed);
+ #endif /* IS_ENABLED(CONFIG_USB_DEVICE_STACK) */
+ 

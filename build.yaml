@@ -1,0 +1,3 @@
+include:
+  - board: framework_wireless_tp_kb/nrf54lm20a/cpuapp/zmk
+    shield: framework_cb_matrix

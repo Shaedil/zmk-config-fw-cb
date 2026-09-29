@@ -1,0 +1,6 @@
+# Builds Framework's board from Zephyr as framework_wireless_tp_kb/nrf54lm20a/cpuapp/zmk
+board:
+  extend: framework_wireless_tp_kb
+  variants:
+    - name: zmk
+      qualifier: nrf54lm20a/cpuapp

@@ -1,0 +1,9 @@
+# Copyright (c) 2026 Shaedil
+# SPDX-License-Identifier: MIT
+
+if SHIELD_FRAMEWORK_CB_MATRIX
+
+config ZMK_KEYBOARD_NAME
+    default "Framework CB"
+
+endif # SHIELD_FRAMEWORK_CB_MATRIX

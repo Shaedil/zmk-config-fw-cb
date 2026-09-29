@@ -1,0 +1,4 @@
+name: framework-cb-uart-log
+append:
+  EXTRA_CONF_FILE: uart-log.conf
+  EXTRA_DTC_OVERLAY_FILE: uart-log.overlay

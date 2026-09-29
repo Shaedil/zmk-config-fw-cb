@@ -1,0 +1,7 @@
+# West workspace and build output (scripts/build.sh, CI)
+.zmk/
+build/
+
+# Editor/OS
+.DS_Store
+*~

@@ -1,0 +1,98 @@
+name: Build
+
+on: [push, pull_request, workflow_dispatch]
+
+jobs:
+  matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      include: ${{ steps.fetch.outputs.include }}
+    steps:
+      - uses: actions/checkout@v6
+      - id: fetch
+        run: echo "include=$(yq -oj -I0 '.include' build.yaml)" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: matrix
+    runs-on: ubuntu-latest
+    container:
+      # zmk-build-arm:4.4-branch, 2026-06-12. Ships Zephyr SDK 1.0.1, which
+      # Zephyr 4.5 also expects; ZMK publishes no 4.5 image yet.
+      image: zmkfirmware/zmk-build-arm@sha256:f03afad9fa0595893af3511c382104b32724cdde34aaa562574f0bc922e49f9d
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJson(needs.matrix.outputs.include) }}
+    defaults:
+      run:
+        shell: bash
+    env:
+      WS: ${{ github.workspace }}/.zmk
+    steps:
+      - uses: actions/checkout@v6
+
+      # The image removes pip after installing its own packages.
+      - name: Install Python tools
+        run: |
+          apt-get update -qq
+          apt-get install -y -qq --no-install-recommends python3-pip
+          pip3 install --break-system-packages -r scripts/requirements.txt
+
+      - name: Prepare workspace
+        run: |
+          mkdir -p "$WS/config"
+          cp config/west.yml "$WS/config/west.yml"
+
+      - name: Cache west modules
+        uses: actions/cache@v5
+        continue-on-error: true
+        with:
+          path: |
+            .zmk/modules
+            .zmk/optional
+            .zmk/zephyr
+            .zmk/zmk
+          key: west-${{ hashFiles('config/west.yml', 'patches/**') }}
+
+      - name: West init and update
+        working-directory: .zmk
+        run: |
+          west init -l config
+          west update --narrow --fetch-opt=--filter=tree:0
+          west zephyr-export
+
+      # The image has the Python requirements of Zephyr 4.4, not 4.5
+      - name: Install Zephyr's Python requirements
+        run: |
+          pip3 install --break-system-packages \
+            -r .zmk/zephyr/scripts/requirements-base.txt \
+            -r scripts/requirements.txt
+
+      - name: Apply patches to ZMK and Zephyr
+        run: scripts/build.sh --patch
+
+      - name: Build
+        working-directory: .zmk
+        run: |
+          west build -s zmk/app -d "$GITHUB_WORKSPACE/build" -b "${{ matrix.board }}" \
+            ${{ matrix.snippet && format('-S "{0}"', matrix.snippet) || '' }} -- \
+            ${{ matrix.shield && format('-DSHIELD="{0}"', matrix.shield) || '' }} \
+            -DZMK_CONFIG="$GITHUB_WORKSPACE/config" \
+            -DZMK_EXTRA_MODULES="$GITHUB_WORKSPACE" \
+            ${{ matrix.cmake-args }}
+
+      - name: Collect image
+        id: collect
+        env:
+          board: ${{ matrix.board }}
+          shield: ${{ matrix.shield }}
+        run: |
+          name="${shield:+$shield-}${board//\//_}"
+          mkdir artifacts
+          cp build/zephyr/zmk.signed.bin "artifacts/$name.signed.bin"
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.collect.outputs.name }}
+          path: artifacts

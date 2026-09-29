@@ -1,0 +1,9 @@
+# Kconfig.defconfig depends on this name
+name: framework-cb
+build:
+  cmake: .
+  kconfig: Kconfig
+  settings:
+    board_root: .
+    dts_root: .
+    snippet_root: .

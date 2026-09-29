@@ -1,0 +1,22 @@
+studio: drop the BT_CONN_TX_MAX default
+
+Zephyr 4.5 removes CONFIG_BT_CONN_TX_MAX, which has had no effect since 4.2
+(pending TX buffers follow CONFIG_BT_BUF_ACL_TX_COUNT), and Kconfig aborts on
+the now type-less symbol.  Behaviour is unchanged.
+
+Applies to petejohanson/zmk 5565f21.
+
+diff --git a/app/src/studio/Kconfig b/app/src/studio/Kconfig
+index 1f4da6d..3a4a972 100644
+--- a/app/src/studio/Kconfig
++++ b/app/src/studio/Kconfig
+@@ -81,9 +81,6 @@ config ZMK_STUDIO_TRANSPORT_BLE
+     default y
+ 
+ 
+-config BT_CONN_TX_MAX
+-    default 64 if ZMK_STUDIO_TRANSPORT_BLE
+-
+ if ZMK_STUDIO_TRANSPORT_BLE
+ 
+ config ZMK_STUDIO_TRANSPORT_BLE_PREF_LATENCY

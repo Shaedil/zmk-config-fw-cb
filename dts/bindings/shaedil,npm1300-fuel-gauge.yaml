@@ -1,0 +1,10 @@
+description: State of charge from nRF Fuel Gauge and an nPM1300 charger
+
+compatible: "shaedil,npm1300-fuel-gauge"
+
+include: base.yaml
+
+properties:
+  charger:
+    type: phandle
+    required: true

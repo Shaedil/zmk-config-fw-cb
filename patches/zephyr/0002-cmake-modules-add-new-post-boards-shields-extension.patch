@@ -1,0 +1,54 @@
+From 300963a90d122b339d8f7b372afb72ccb65f046b Mon Sep 17 00:00:00 2001
+From: Peter Johanson <peter@peterjohanson.com>
+Date: Wed, 4 Jun 2025 01:09:08 -0600
+Subject: [PATCH] cmake: modules: Add new post_boards_shields extension
+
+New post_boards_shields extension to customize files/config after
+boards and shields are fully resolved.
+
+Signed-off-by: Peter Johanson <peter@peterjohanson.com>
+---
+ cmake/modules/post_boards_shields.cmake | 21 +++++++++++++++++++++
+ cmake/modules/zephyr_default.cmake      |  1 +
+ 2 files changed, 22 insertions(+)
+ create mode 100644 cmake/modules/post_boards_shields.cmake
+
+diff --git a/cmake/modules/post_boards_shields.cmake b/cmake/modules/post_boards_shields.cmake
+new file mode 100644
+index 000000000000..83f9b29859a9
+--- /dev/null
++++ b/cmake/modules/post_boards_shields.cmake
+@@ -0,0 +1,21 @@
++# SPDX-License-Identifier: Apache-2.0
++#
++# Copyright (c) 2025, Pete Johanson
++
++# Perform any post-processing/customization once details of selected board and shields
++# is fully loaded.
++#
++# This CMake module will TODO.
++#
++include_guard(GLOBAL)
++
++include(python)
++include(extensions)
++
++foreach(root ${BOARD_ROOT})
++  message("Checking ${root}")
++  if (EXISTS ${root}/boards/post_boards_shields.cmake)
++    message("found ${root}")
++    include(${root}/boards/post_boards_shields.cmake)
++  endif()
++endforeach()
+diff --git a/cmake/modules/zephyr_default.cmake b/cmake/modules/zephyr_default.cmake
+index 6cf27ebbde2a..f2afcee2ee75 100644
+--- a/cmake/modules/zephyr_default.cmake
++++ b/cmake/modules/zephyr_default.cmake
+@@ -94,6 +94,7 @@ list(APPEND zephyr_cmake_modules zephyr_module)
+ 
+ list(APPEND zephyr_cmake_modules boards)
+ list(APPEND zephyr_cmake_modules shields)
++list(APPEND zephyr_cmake_modules post_boards_shields)
+ list(APPEND zephyr_cmake_modules snippets)
+ list(APPEND zephyr_cmake_modules hwm_v2)
+ list(APPEND zephyr_cmake_modules configuration_files)

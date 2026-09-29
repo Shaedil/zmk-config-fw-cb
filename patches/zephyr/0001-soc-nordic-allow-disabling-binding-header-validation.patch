@@ -1,0 +1,55 @@
+From ff9d44ed57d79153845a8467a4ecd0a8be443448 Mon Sep 17 00:00:00 2001
+From: Peter Johanson <peter@peterjohanson.com>
+Date: Tue, 1 Apr 2025 01:14:34 -0600
+Subject: [PATCH] soc: nordic: Allow disabling binding header validation
+
+For projects with extensive custom binding headers, the NRF binding
+header validation can cause issues, so add the ability to selectively
+disable the compile check.
+
+Signed-off-by: Peter Johanson <peter@peterjohanson.com>
+---
+ soc/nordic/CMakeLists.txt |  4 +++-
+ soc/nordic/Kconfig        | 11 +++++++++++
+ 2 files changed, 14 insertions(+), 1 deletion(-)
+
+diff --git a/soc/nordic/CMakeLists.txt b/soc/nordic/CMakeLists.txt
+index 11f6bb66d66f..5005a763eb0c 100644
+--- a/soc/nordic/CMakeLists.txt
++++ b/soc/nordic/CMakeLists.txt
+@@ -8,10 +8,12 @@ endif()
+ 
+ zephyr_library_sources(
+   validate_base_addresses.c
+-  validate_binding_headers.c
+   validate_enabled_instances.c
+   )
+ 
++zephyr_library_sources_ifdef(CONFIG_NRF_SOC_VALIDATE_HEADERS validate_binding_headers.c)
++
++
+ # Include dt-bindings headers into the build. This lets us validate all required
+ # DT values against the MDK, without having to conditionally include different
+ # headers for different SoCs.
+diff --git a/soc/nordic/Kconfig b/soc/nordic/Kconfig
+index 6a8b8a0810e4..fcf82809291d 100644
+--- a/soc/nordic/Kconfig
++++ b/soc/nordic/Kconfig
+@@ -70,6 +70,17 @@ if SOC_FAMILY_NORDIC_NRF
+ rsource "common/Kconfig.peripherals"
+ rsource "*/Kconfig"
+ 
++config NRF_SOC_VALIDATE_HEADERS_DISABLED
++	bool "Disable NRF binding header validation"
++
++config NRF_SOC_VALIDATE_HEADERS
++	bool "Validate NRF dt-binding headers"
++	default y
++	depends on !NRF_SOC_VALIDATE_HEADERS_DISABLED
++	help
++	  Build an additional check to validate included dt-binding headers
++	  match the MDK.
++
+ config NRF_SOC_SECURE_SUPPORTED
+ 	def_bool !TRUSTED_EXECUTION_NONSECURE || (BUILD_WITH_TFM && TFM_PARTITION_PLATFORM)
+ 	depends on !SOC_SERIES_NRF54H

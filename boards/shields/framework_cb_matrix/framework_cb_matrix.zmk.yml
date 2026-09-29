@@ -1,0 +1,9 @@
+file_format: "1"
+id: framework_cb_matrix
+name: Framework CB Header Matrix
+type: shield
+url: https://github.com/FrameworkComputer/Framework-Wireless-Touchpad-Keyboard
+requires: [framework_wireless_tp_kb]
+features:
+  - keys
+  - studio

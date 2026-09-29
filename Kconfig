@@ -1,0 +1,45 @@
+# Copyright (c) 2026 Shaedil
+# SPDX-License-Identifier: MIT
+
+if BOARD_FRAMEWORK_WIRELESS_TP_KB_NRF54LM20A_CPUAPP_ZMK
+
+config FRAMEWORK_CB_WATCHDOG
+	bool "Reset the board if the firmware hangs"
+	default y
+	select WATCHDOG
+	help
+	  The board has no reset button.  WDT31 resets it into MCUboot if the
+	  system workqueue stops running.
+
+config FRAMEWORK_CB_WATCHDOG_TIMEOUT_MS
+	int "Watchdog timeout in milliseconds"
+	default 8000
+	depends on FRAMEWORK_CB_WATCHDOG
+
+config FRAMEWORK_CB_MODE_SWITCH
+	bool "Use S1 to choose between wired and Bluetooth"
+	default y
+	depends on ZMK_BLE && ZMK_USB
+	select INPUT
+	help
+	  ON sends over Bluetooth, falling back to USB when no host is
+	  connected.  OFF turns Bluetooth off and sends over USB.  Reads S1
+	  through Framework's protocol_switch key.  Needs patches/zmk/.
+
+config FRAMEWORK_CB_FUEL_GAUGE
+	bool "Battery level from nRF Fuel Gauge"
+	default y
+	depends on DT_HAS_SHAEDIL_NPM1300_FUEL_GAUGE_ENABLED
+	select SENSOR
+	select REQUIRES_FULL_LIBC
+	help
+	  Tracks the cell with Nordic's nRF Fuel Gauge library, fed by the
+	  nPM1300's voltage, current, temperature and charge state.
+
+config FRAMEWORK_CB_STATUS_LED
+	bool "Light the blue LED while connected to a host"
+	default y
+	help
+	  The RGB LED is driven off at boot either way.
+
+endif # BOARD_FRAMEWORK_WIRELESS_TP_KB_NRF54LM20A_CPUAPP_ZMK

@@ -1,0 +1,40 @@
+# ZMK: zmkfirmware/zmk#3387, the draft port to Zephyr 4.4, run here on 4.5.
+# Zephyr: FrameworkComputer/zephyr#2, which adds the Control Board
+# (framework_wireless_tp_kb) to Zephyr main after v4.5.0-rc1.
+manifest:
+  remotes:
+    - name: petejohanson
+      url-base: https://github.com/petejohanson
+    - name: framework
+      url-base: https://github.com/FrameworkComputer
+  projects:
+    - name: zmk
+      remote: petejohanson
+      revision: 5565f2179c1af83bdf210a6a362dfa4193c56189
+      import: app/west.yml
+    # Replaces ZMK's entry, pinned by commit; must stay after zmk
+    - name: zephyr
+      remote: framework
+      revision: 567b1176bad9b92343915337783fc797c2840213 # framework-wireless-boards
+      clone-depth: 1
+      import:
+        name-blocklist:
+          - ci-tools
+          - hal_altera
+          - hal_cypress
+          - hal_infineon
+          - hal_microchip
+          - hal_nxp
+          - hal_openisa
+          - hal_xtensa
+          - hal_st
+          - hal_ti
+          - loramac-node
+          - mcuboot
+          - mcumgr
+          - net-tools
+          - openthread
+          - edtt
+          - trusted-firmware-m
+  self:
+    path: config

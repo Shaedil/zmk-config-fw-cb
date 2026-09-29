@@ -1,0 +1,9 @@
+/*
+ * Copyright (c) 2026 Shaedil
+ * SPDX-License-Identifier: MIT
+ */
+
+// Debug UART on the pin header: TX P2.02, RX P2.00, 115200 baud
+&uart00 {
+	status = "okay";
+};

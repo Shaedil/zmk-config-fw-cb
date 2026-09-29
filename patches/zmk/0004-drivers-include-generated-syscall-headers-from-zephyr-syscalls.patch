@@ -1,0 +1,38 @@
+drivers: include generated syscall headers from zephyr/syscalls
+
+Zephyr 4.5 no longer generates the legacy <syscalls/...> include path; the
+headers are only available as <zephyr/syscalls/...>, which Zephyr 4.4 also
+provides.
+
+Applies to petejohanson/zmk 5565f21.
+
+diff --git a/app/include/drivers/behavior.h b/app/include/drivers/behavior.h
+index 56c26a0..8672794 100644
+--- a/app/include/drivers/behavior.h
++++ b/app/include/drivers/behavior.h
+@@ -445,4 +445,4 @@ z_impl_behavior_sensor_keymap_binding_process(struct zmk_behavior_binding *bindi
+  * @}
+  */
+ 
+-#include <syscalls/behavior.h>
++#include <zephyr/syscalls/behavior.h>
+diff --git a/app/include/drivers/ext_power.h b/app/include/drivers/ext_power.h
+index 287679e..76bb825 100644
+--- a/app/include/drivers/ext_power.h
++++ b/app/include/drivers/ext_power.h
+@@ -101,4 +101,4 @@ static inline int z_impl_ext_power_get(const struct device *dev) {
+  * @}
+  */
+ 
+-#include <syscalls/ext_power.h>
++#include <zephyr/syscalls/ext_power.h>
+diff --git a/app/include/drivers/input_processor.h b/app/include/drivers/input_processor.h
+index fac4459..acb2070 100644
+--- a/app/include/drivers/input_processor.h
++++ b/app/include/drivers/input_processor.h
+@@ -68,4 +68,4 @@ static inline int z_impl_zmk_input_processor_handle_event(const struct device *d
+     return api->handle_event(dev, event, param1, param2, state);
+ }
+ 
+-#include <syscalls/input_processor.h>
++#include <zephyr/syscalls/input_processor.h>
