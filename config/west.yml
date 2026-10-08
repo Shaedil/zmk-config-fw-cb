@@ -15,7 +15,7 @@ manifest:
     # Replaces ZMK's entry, pinned by commit; must stay after zmk
     - name: zephyr
       remote: framework
-      revision: 567b1176bad9b92343915337783fc797c2840213 # framework-wireless-boards
+      revision: 8597b2fa1b965f121ec507916b182cb0c60eb4a6 # framework-wireless-boards
       clone-depth: 1
       import:
         name-blocklist:
